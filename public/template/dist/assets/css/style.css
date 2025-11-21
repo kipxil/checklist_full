@@ -16168,9 +16168,10 @@ pre[class*=language-] > code {
   background: var(--bs-primary);
 }
 .pc-sidebar .m-header {
-  height: 60px;
+  height: 100px;
   display: flex;
   align-items: center;
+  justify-content: center;
   padding: 16px 24px;
 }
 .pc-sidebar .m-header .logo-sm {
@@ -16449,7 +16450,7 @@ pre[class*=language-] > code {
   height: 60px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   width: 260px;
   padding: 16px 10px 16px 24px;
 }
@@ -22126,7 +22127,7 @@ select.form-control[data-multiselectsplitter-firstselect-selector], select.form-
 }
 .auth-main .auth-wrapper.v3 .auth-form {
   flex-direction: column;
-  background: url("../images/authentication/img-auth-bg.svg");
+  /* background: url("../images/authentication/img-auth-bg.svg"); */
   min-height: 100vh;
   padding: 24px;
   background-repeat: no-repeat;

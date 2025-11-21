@@ -48,24 +48,49 @@
     <div class="auth-main">
         <div class="auth-wrapper v3">
             <div class="auth-form">
-                {{-- <div class="auth-header">
-                    <a href="#"><img src="{{ asset('template/dist') }}/assets/images/logo-dark.svg"
-                            alt="img"></a>
-                </div> --}}
+                <div class="auth-header">
+                    <a href="#"><img src="{{ asset('images/VasaHotel.png') }}" alt="img"
+                            style="width: 70px"></a>
+                </div>
                 <div class="card my-5">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-end mb-4">
                             <h3 class="mb-0"><b>Login</b></h3>
                             {{-- <a href="#" class="link-primary">Don't have an account?</a> --}}
                         </div>
-                        <div class="form-group mb-3">
-                            <label class="form-label">NIK</label>
-                            <input type="text" class="form-control" placeholder="NIK">
-                        </div>
-                        <div class="form-group mb-3">
-                            <label class="form-label">Password</label>
-                            <input type="password" class="form-control" placeholder="Password">
-                        </div>
+                        <x-auth-session-status class="mb-4" :status="session('status')" />
+
+                        <form method="POST" action="{{ route('login') }}">
+                            @csrf
+
+                            <div class="form-group mb-3">
+                                <label class="form-label" for="nik">Employee ID</label>
+                                <input type="text" class="form-control" id="nik" name="nik"
+                                    placeholder="Employee ID" :value="old('nik')" required autofocus
+                                    autocomplete="off">
+                                <x-input-error :messages="$errors->get('nik')" class="mt-2 text-danger" />
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label class="form-label" for="password">Password</label>
+                                <input type="password" class="form-control" id="password" name="password"
+                                    placeholder="Password" required autocomplete="current-password">
+                                <x-input-error :messages="$errors->get('password')" class="mt-2 text-danger" />
+                            </div>
+
+                            <div class="d-flex mt-1 justify-content-between">
+                                <div class="form-check">
+                                    <input class="form-check-input input-primary" type="checkbox" id="remember_me"
+                                        name="remember">
+                                    <label class="form-check-label text-muted" for="remember_me">Keep me sign in</label>
+                                </div>
+                                {{-- <h5 class="text-secondary f-w-400">Forgot Password?</h5> --}}
+                            </div>
+
+                            <div class="d-grid mt-4">
+                                <button type="submit" class="btn btn-primary">Login</button>
+                            </div>
+                        </form>
                         <div class="d-flex mt-1 justify-content-between">
                             {{-- <div class="form-check">
                                 <input class="form-check-input input-primary" type="checkbox" id="customCheckc1"
@@ -74,9 +99,9 @@
                             </div> --}}
                             {{-- <h5 class="text-secondary f-w-400">Forgot Password?</h5> --}}
                         </div>
-                        <div class="d-grid mt-4">
+                        {{-- <div class="d-grid mt-4">
                             <button type="button" class="btn btn-primary">Login</button>
-                        </div>
+                        </div> --}}
                         {{-- <div class="saprator mt-3">
                             <span>Login with</span>
                         </div>
