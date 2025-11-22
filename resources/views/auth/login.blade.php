@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-    <title>Login | F&B Daily Report System</title>
+    <title>Login | Daily Report System</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -66,7 +66,7 @@
                             {{-- Ganti src ini dengan logo hotel Anda yang benar --}}
                             <img src="{{ asset('images/VasaHotel.png') }}" alt="Logo Hotel"
                                 class="img-fluid logo-login mb-3">
-                            <h3 class="f-w-600 mb-1">F&B Daily Report</h3>
+                            <h3 class="f-w-600 mb-1">Daily Report</h3>
                             <p class="text-muted">Enter your credentials to continue</p>
                         </div>
 
@@ -103,7 +103,7 @@
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="ti ti-lock"></i></span>
                                     <input type="password" name="password" class="form-control" id="passwordInput"
-                                        placeholder="Enter Password" required>
+                                        placeholder="Enter Password" required autocomplete="off">
                                     {{-- Tombol Show/Hide Password --}}
                                     <button class="btn btn-outline-secondary" type="button" id="togglePassword">
                                         <i class="ti ti-eye" id="eyeIcon"></i>
