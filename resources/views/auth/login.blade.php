@@ -140,7 +140,7 @@
 
                 {{-- FOOTER --}}
                 <div class="text-center text-white">
-                    <p class="my-1">Copyright © {{ date('Y') }} Vasa Hotel Surabaya</p>
+                    <p class="my-1">Copyright © {{ date('Y') }} Tanly Hospitality</p>
                 </div>
 
             </div>
