@@ -68,13 +68,12 @@
                                 <div class="form-group">
                                     <label class="form-label">Date & Time</label>
 
-                                    {{-- 1. Tampilan Visual (Readonly agar tidak bisa diubah user) --}}
-                                    <input type="text" class="form-control bg-light cursor-not-allowed"
-                                        value="{{ now()->format('d F Y - H:i') }}" readonly>
+                                    {{-- GANTI MENJADI INPUT DATETIME-LOCAL --}}
+                                    {{-- Format value harus 'Y-m-d\TH:i' agar terbaca oleh input HTML5 --}}
+                                    <input type="datetime-local" name="date" class="form-control"
+                                        value="{{ old('date', now()->format('Y-m-d\TH:i')) }}" required>
 
-                                    {{-- 2. Data Asli yang dikirim ke Server (Hidden) --}}
-                                    {{-- Kita kirim tanggal hari ini (Y-m-d) agar validasi 'date' di controller tetap lolos --}}
-                                    <input type="hidden" name="date" value="{{ now()->format('Y-m-d') }}">
+                                    <small class="text-muted">You can change this date if reporting for past events.</small>
                                 </div>
                             </div>
                         </div>

@@ -87,6 +87,20 @@
                         </a>
                     </li> --}}
 
+                    @hasanyrole('Super Admin|Restaurant Manager')
+                        <li class="pc-item pc-caption">
+                            <label>Finance & Planning</label>
+                            <i class="ti ti-chart-pie"></i>
+                        </li>
+
+                        <li class="pc-item">
+                            <a href="{{ route('revenue-targets.index') }}" class="pc-link">
+                                <span class="pc-micon"><i class="ti ti-target"></i></span>
+                                <span class="pc-mtext">Revenue Targets</span>
+                            </a>
+                        </li>
+                    @endhasanyrole
+
                     @hasrole('Super Admin')
                         <li class="pc-item pc-caption">
                             <label>Settings</label>

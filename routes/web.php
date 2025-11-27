@@ -6,6 +6,7 @@ use App\Http\Controllers\UpsellingItemController;
 use App\Http\Controllers\RestaurantController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\RevenueTargetController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -24,8 +25,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/daily-reports/{dailyReport}/edit', [DailyReportController::class, 'edit'])->name('daily-reports.edit');
     Route::put('/daily-reports/{dailyReport}', [DailyReportController::class, 'update'])->name('daily-reports.update');
     Route::get('/daily-reports/{dailyReport}', [DailyReportController::class, 'show'])->name('daily-reports.show');
+    Route::get('/daily-reports/{dailyReport}/pdf', [DailyReportController::class, 'downloadPdf'])->name('daily-reports.pdf');
     Route::patch('/daily-reports/{dailyReport}/approve', [DailyReportController::class, 'approve'])->name('daily-reports.approve');
     Route::patch('/daily-reports/{dailyReport}/reject', [DailyReportController::class, 'reject'])->name('daily-reports.reject');
+    Route::delete('/daily-reports/{dailyReport}', [DailyReportController::class, 'destroy'])->name('daily-reports.destroy');
 
     Route::get('/upselling-items', [UpsellingItemController::class, 'index'])->middleware(['role:Super Admin'])->name('upselling-items.index');
     Route::get('/upselling-items/create', [UpsellingItemController::class, 'create'])->middleware(['role:Super Admin'])->name('upselling-items.create');
@@ -47,6 +50,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->middleware(['role:Super Admin'])->name('users.edit');
     Route::put('/users/{user}', [UserController::class, 'update'])->middleware(['role:Super Admin'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->middleware(['role:Super Admin'])->name('users.destroy');
+
+    Route::get('/revenue-targets', [RevenueTargetController::class, 'index'])->name('revenue-targets.index');
+    Route::post('/revenue-targets', [RevenueTargetController::class, 'store'])->name('revenue-targets.store');
 });
 
 Route::middleware('auth')->group(function () {

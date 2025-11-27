@@ -132,6 +132,41 @@ class DashboardController extends Controller
             ['name' => 'Sheraton', 'data' => $compData['sheraton']->values()],
         ];
 
+        $currentMonth = now()->month;
+        $currentYear = now()->year;
+
+        // 1. Hitung Actual Revenue Bulan Ini (MTD)
+        // Filter berdasarkan bulan & tahun ini
+        $mtdReports = DailyReport::whereMonth('date', $currentMonth)
+            ->whereYear('date', $currentYear)
+            ->where('status', '!=', 'draft') // Hanya hitung yang submitted/approved (Opsional: hapus jika draft mau dihitung)
+            ->with('details')
+            ->get();
+
+        $mtdRevenue = 0;
+        foreach ($mtdReports as $report) {
+            foreach ($report->details as $detail) {
+                $mtdRevenue += $detail->revenue_food
+                    + $detail->revenue_beverage
+                    + $detail->revenue_others
+                    + $detail->revenue_event;
+            }
+        }
+
+        // 2. Ambil Target Revenue Bulan Ini
+        $targetQuery = \App\Models\RevenueTarget::where('month', $currentMonth)
+            ->where('year', $currentYear);
+
+        // Manual Scope: Jika bukan Super Admin, filter target milik restonya saja
+        if (!$user->hasRole('Super Admin')) {
+            $targetQuery->whereIn('restaurant_id', $user->restaurants->pluck('id'));
+        }
+
+        $monthlyTarget = $targetQuery->sum('amount');
+
+        // 3. Hitung Persentase (Cegah division by zero)
+        $achievementPercent = $monthlyTarget > 0 ? ($mtdRevenue / $monthlyTarget) * 100 : 0;
+
         // ---------------------------------------------------------
         // 2. TABEL RINGKASAN (5 Laporan Terakhir)
         // ---------------------------------------------------------
@@ -149,7 +184,10 @@ class DashboardController extends Controller
             'recentReports',
             'chartLabels',
             'chartValues',
-            'compSeries'
+            'compSeries',
+            'mtdRevenue',
+            'monthlyTarget',
+            'achievementPercent',
         ));
     }
 }

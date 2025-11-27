@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class DailyReportController extends Controller
 {
@@ -60,7 +61,7 @@ class DailyReportController extends Controller
             }
         }
 
-        $request->merge(['date' => now()->format('Y-m-d H:i:s')]);
+        // $request->merge(['date' => now()->format('Y-m-d H:i:s')]);
 
         // 1. Validasi Dasar (Header)
         $request->validate([
@@ -296,6 +297,23 @@ class DailyReportController extends Controller
         return view('daily-reports.show', compact('dailyReport'));
     }
 
+    public function destroy(DailyReport $dailyReport)
+    {
+        $user = Auth::user();
+
+        // 1. Proteksi Role: Hanya Super Admin & Manager yang boleh hapus
+        if (!$user->hasRole(['Super Admin', 'Restaurant Manager'])) {
+            abort(403, 'Unauthorized. Only Managers can delete reports.');
+        }
+
+        // 2. Eksekusi Hapus
+        // Karena relasi di migration pakai 'onDelete("cascade")',
+        // detail laporan akan otomatis ikut terhapus.
+        $dailyReport->delete();
+
+        return back()->with('success', 'Laporan berhasil dihapus.');
+    }
+
     public function approve(DailyReport $dailyReport)
     {
         if (!$this->isUserApprover(Auth::user())) {
@@ -335,6 +353,30 @@ class DailyReportController extends Controller
         ]);
 
         return back()->with('success', 'Laporan ditolak dan status kembali menjadi Draft. User dapat mengeditnya sekarang.');
+    }
+
+    public function downloadPdf(DailyReport $dailyReport)
+    {
+        // 1. Validasi: Hanya yang Approved yang boleh didownload
+        if ($dailyReport->status !== 'approved') {
+            return back()->with('error', 'Hanya laporan yang sudah disetujui (Approved) yang dapat diunduh.');
+        }
+
+        // 2. Load Relasi Data
+        $dailyReport->load(['details', 'restaurant', 'user', 'approver']);
+
+        // 3. Generate PDF
+        // Kita pakai view khusus 'daily-reports.pdf' agar tampilannya bersih (format surat)
+        $pdf = Pdf::loadView('daily-reports.pdf', compact('dailyReport'));
+
+        // Setup kertas A4 Portrait
+        $pdf->setPaper('a4', 'portrait');
+
+        // 4. Download dengan nama file yang rapi
+        // Contoh: Report_209Dining_2025-11-27.pdf
+        $filename = 'Report_' . str_replace(' ', '', $dailyReport->restaurant->code) . '_' . $dailyReport->date->format('Y-m-d') . '.pdf';
+
+        return $pdf->download($filename);
     }
 
     private function validateSubmission(Request $request)

@@ -43,7 +43,8 @@
                         <table class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th>Date</th>
+                                    <th>Report Date</th>
+                                    <th>Created At</th>
                                     <th>Restaurant</th>
                                     <th>Created By</th>
                                     <th>Status</th>
@@ -56,6 +57,10 @@
                                         <td>
                                             <div class="fw-bold">{{ $report->date->format('d M Y') }}</div>
                                             <div class="small text-muted">{{ $report->date->format('H:i') }}</div>
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold">{{ $report->created_at->format('d M Y') }}</div>
+                                            <div class="small text-muted">{{ $report->created_at->format('H:i') }}</div>
                                         </td>
                                         <td>{{ $report->restaurant->name }}</td>
                                         <td>{{ $report->user->name }}</td>
@@ -74,13 +79,27 @@
                                                 class="btn btn-icon btn-link-secondary">
                                                 <i class="ti ti-eye"></i>
                                             </a>
-                                            {{-- TOMBOL EDIT (Hanya untuk Draft) --}}
+
+                                            {{-- Tombol Edit (Hanya Draft) --}}
                                             @if ($report->status == 'draft')
                                                 <a href="{{ route('daily-reports.edit', $report->id) }}"
                                                     class="btn btn-icon btn-link-warning">
                                                     <i class="ti ti-pencil"></i>
                                                 </a>
                                             @endif
+
+                                            {{-- TOMBOL HAPUS (Hanya Manager & Super Admin) --}}
+                                            @hasanyrole('Super Admin|Restaurant Manager')
+                                                <form action="{{ route('daily-reports.destroy', $report->id) }}" method="POST"
+                                                    class="d-inline-block">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-icon btn-link-danger"
+                                                        onclick="return confirm('Apakah Anda yakin ingin menghapus laporan tanggal {{ $report->date->format('d M Y') }} ini? Tindakan ini tidak bisa dibatalkan.')">
+                                                        <i class="ti ti-trash"></i>
+                                                    </button>
+                                                </form>
+                                            @endhasanyrole
                                         </td>
                                     </tr>
                                 @empty

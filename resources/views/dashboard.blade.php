@@ -21,6 +21,39 @@
 @section('content')
     <div class="row">
 
+        <div class="col-md-12">
+            <div class="card bg-light-primary border-primary">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="text-primary mb-2">
+                                <i class="ti ti-chart-pie me-2"></i> Monthly Performance ({{ now()->format('F Y') }})
+                            </h5>
+                            <div class="d-flex align-items-baseline gap-2 mb-2">
+                                <h2 class="mb-0 fw-bold">Rp {{ number_format($mtdRevenue, 0, ',', '.') }}</h2>
+                                <span class="text-muted">/ Target: Rp
+                                    {{ number_format($monthlyTarget, 0, ',', '.') }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <h2
+                                class="mb-0 {{ $achievementPercent >= 100 ? 'text-success' : ($achievementPercent >= 80 ? 'text-warning' : 'text-danger') }}">
+                                {{ number_format($achievementPercent, 1) }}%
+                            </h2>
+                            <span class="small text-muted">Achievement</span>
+                        </div>
+                    </div>
+
+                    {{-- Progress Bar --}}
+                    <div class="progress mt-3" style="height: 20px;">
+                        <div class="progress-bar {{ $achievementPercent >= 100 ? 'bg-success' : ($achievementPercent >= 80 ? 'bg-warning' : 'bg-danger') }} progress-bar-striped progress-bar-animated"
+                            role="progressbar" style="width: {{ min($achievementPercent, 100) }}%"
+                            aria-valuenow="{{ $achievementPercent }}" aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         {{-- WIDGET 1: WAITING APPROVAL --}}
         <div class="col-md-4">
             <div class="card">

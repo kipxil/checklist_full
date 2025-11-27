@@ -87,7 +87,7 @@
         </div>
 
         {{-- AYCE & Child --}}
-        <div class="p-3 border rounded mb-3 bg-white">
+        {{-- <div class="p-3 border rounded mb-3 bg-white">
             <span class="badge bg-info mb-2">AYCE & CHILD</span>
             <div class="row g-2">
                 <div class="col-md-3">
@@ -119,7 +119,7 @@
                         placeholder="0">
                 </div>
             </div>
-        </div>
+        </div> --}}
 
         <hr>
 
@@ -352,7 +352,7 @@
             </div>
         </div>
 
-        <div class="p-3 border rounded mb-3 bg-white">
+        {{-- <div class="p-3 border rounded mb-3 bg-white">
             <span class="badge bg-info mb-2">AYCE & CHILD</span>
             <div class="row g-2">
                 <div class="col-md-3">
@@ -384,7 +384,7 @@
                         placeholder="0">
                 </div>
             </div>
-        </div>
+        </div> --}}
 
         <hr>
 

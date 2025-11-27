@@ -64,13 +64,9 @@
                                 <div class="form-group">
                                     <label class="form-label">Report Date & Time</label>
 
-                                    {{-- TAMPILAN VISUAL (Format Manusia) --}}
-                                    <input type="text" class="form-control"
-                                        value="{{ $dailyReport->date->format('d F Y - H:i') }}" disabled>
-
-                                    {{-- DATA ASLI (Format Database Y-m-d H:i:s) --}}
-                                    <input type="hidden" name="date"
-                                        value="{{ $dailyReport->date->format('Y-m-d H:i:s') }}">
+                                    {{-- GANTI JADI EDITABLE --}}
+                                    <input type="datetime-local" name="date" class="form-control" {{-- Format tanggal dari database harus diubah ke format HTML5 --}}
+                                        value="{{ old('date', $dailyReport->date->format('Y-m-d\TH:i')) }}" required>
                                 </div>
                             </div>
                         </div>

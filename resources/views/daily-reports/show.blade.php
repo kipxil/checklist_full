@@ -50,6 +50,16 @@
                                 <h6 class="mb-0">{{ $dailyReport->user->name }}</h6>
                             </div>
                         </li>
+                        @if ($dailyReport->status == 'approved')
+                            <li class="list-group-item px-0 pb-3 pt-3">
+                                <div class="d-grid">
+                                    <a href="{{ route('daily-reports.pdf', $dailyReport->id) }}" class="btn btn-danger"
+                                        target="_blank">
+                                        <i class="ti ti-file-type-pdf me-1"></i> Download Report PDF
+                                    </a>
+                                </div>
+                            </li>
+                        @endif
                         <li class="list-group-item px-0">
                             <span class="text-muted mb-1 d-block">Status</span>
                             @if ($dailyReport->status == 'approved')
