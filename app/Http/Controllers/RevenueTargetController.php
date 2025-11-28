@@ -26,7 +26,9 @@ class RevenueTargetController extends Controller
         $year = $request->input('year', date('Y'));
         $query->where('year', $year);
 
-        $targets = $query->orderBy('month', 'desc')->paginate(10);
+        $targets = $query->orderBy('month', 'desc')
+            ->orderBy('restaurant_id', 'asc') // <--- PENYELAMAT
+            ->paginate(10);
         $restaurants = $user->hasRole('Super Admin') ? Restaurant::all() : $user->restaurants;
 
         return view('revenue-targets.index', compact('targets', 'restaurants', 'year'));
