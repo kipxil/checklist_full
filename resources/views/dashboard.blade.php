@@ -484,6 +484,7 @@
         let coverChartInstance = null;
         let revenueChartInstance = null;
         let competitorChartInstance = null;
+        let dayTrendChartInstance = null;
 
         function openAnalyticsModal(restaurantId) {
             var myModal = new bootstrap.Modal(document.getElementById('analyticsModal'));
@@ -520,6 +521,7 @@
                     renderCoverChart();
                     renderRevenueChart();
                     renderCompetitorChart();
+                    renderDayTrendChart();
                 })
                 .catch(error => {
                     console.error(error);
@@ -741,6 +743,62 @@
             // 4. Render
             competitorChartInstance = new ApexCharts(document.querySelector("#competitorReportChart"), options);
             competitorChartInstance.render();
+        }
+
+        function renderDayTrendChart() {
+            const catElement = document.getElementById('chart-day-categories-data');
+            const serElement = document.getElementById('chart-day-series-data');
+
+            if (!catElement || !serElement) return;
+
+            const categories = JSON.parse(catElement.value);
+            const series = JSON.parse(serElement.value);
+
+            if (dayTrendChartInstance) {
+                dayTrendChartInstance.destroy();
+            }
+
+            var options = {
+                series: series,
+                chart: {
+                    type: 'line', // Ganti jadi 'line' untuk melihat tren
+                    height: 350,
+                    toolbar: {
+                        show: false
+                    },
+                    fontFamily: 'inherit'
+                },
+                stroke: {
+                    curve: 'smooth', // Garis melengkung halus
+                    width: 3
+                },
+                dataLabels: {
+                    enabled: false
+                },
+                xaxis: {
+                    categories: categories, // Mon, Tue, Wed...
+                },
+                yaxis: {
+                    title: {
+                        text: 'Accumulated Pax'
+                    }
+                },
+                tooltip: {
+                    y: {
+                        formatter: function(val) {
+                            return val + " Pax";
+                        }
+                    }
+                },
+                legend: {
+                    position: 'top',
+                    horizontalAlign: 'left'
+                },
+                colors: ['#ffc107', '#0d6efd', '#212529', '#6610f2'] // Kuning, Biru, Hitam, Ungu
+            };
+
+            dayTrendChartInstance = new ApexCharts(document.querySelector("#dayTrendChart"), options);
+            dayTrendChartInstance.render();
         }
     </script>
 @endsection

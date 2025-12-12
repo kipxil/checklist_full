@@ -47,6 +47,10 @@
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-competitor" type="button">3.
                 Competitor</button>
         </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-daytrend" type="button">4. Cover by
+                Day</button>
+        </li>
     </ul>
 
     <div class="tab-content" id="analyticsTabContent">
@@ -224,6 +228,71 @@
             <div class="mt-3 small text-muted">
                 <i class="ti ti-info-circle me-1"></i> Data based on accumulated daily reports within the selected
                 period.
+            </div>
+        </div>
+
+        {{-- TAB 4: WEEKLY TREND --}}
+        <div class="tab-pane fade" id="tab-daytrend">
+            {{-- C. TABEL (Sesi di Baris, Hari di Kolom) --}}
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm table-hover text-center align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-start">Session Type</th>
+                            @foreach ($daysOfWeek as $day)
+                                <th>{{ $day }}</th>
+                            @endforeach
+                            <th class="bg-light-primary text-primary">TOTAL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @php
+                            $dayColTotals = array_fill_keys($daysOfWeek, 0);
+                            $dayGrandTotal = 0;
+                        @endphp
+
+                        @foreach ($sessions as $sess)
+                            <tr>
+                                <td class="text-start fw-bold text-muted text-capitalize">{{ $sess }}</td>
+                                @php $rowTotal = 0; @endphp
+
+                                @foreach ($daysOfWeek as $day)
+                                    @php
+                                        $val = $dayTrendMatrix[$sess][$day];
+                                        $rowTotal += $val;
+                                        $dayColTotals[$day] += $val;
+                                    @endphp
+                                    <td>{{ $val > 0 ? number_format($val) : '-' }}</td>
+                                @endforeach
+
+                                @php $dayGrandTotal += $rowTotal; @endphp
+                                <td class="fw-bold bg-light-primary text-primary">{{ number_format($rowTotal) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot class="table-light fw-bold">
+                        <tr>
+                            <td class="text-start">TOTAL PAX</td>
+                            @foreach ($daysOfWeek as $day)
+                                <td>{{ number_format($dayColTotals[$day]) }}</td>
+                            @endforeach
+                            <td class="bg-primary text-white">{{ number_format($dayGrandTotal) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {{-- A. WADAH GRAFIK --}}
+            <div class="card mb-3 border-0 bg-light">
+                <div class="card-body">
+                    <div id="dayTrendChart"></div>
+                </div>
+            </div>
+
+            {{-- B. DATA PAYLOAD (Hidden) --}}
+            <textarea id="chart-day-categories-data" style="display:none;">{{ json_encode($daysOfWeek) }}</textarea>
+            <textarea id="chart-day-series-data" style="display:none;">{{ json_encode($dayChartSeries) }}</textarea>
+            <div class="mt-3 small text-muted">
+                <i class="ti ti-info-circle me-1"></i> Data shows accumulated pax count per day of the week.
             </div>
         </div>
 

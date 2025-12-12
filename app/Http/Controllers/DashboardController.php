@@ -385,6 +385,53 @@ class DashboardController extends Controller
             ];
         }
 
+        // 7D. SIAPKAN DATA DAILY TREND (BY DAY OF WEEK)
+        // Columns: Mon, Tue, Wed, Thu, Fri, Sat, Sun
+        $daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+        // Rows: Breakfast, Lunch, Dinner, Supper
+        // Structure: ['breakfast' => ['Mon' => 0, 'Tue' => 0...], ...]
+        $dayTrendMatrix = [];
+        foreach ($sessions as $sess) {
+            $dayTrendMatrix[$sess] = array_fill_keys($daysOfWeek, 0);
+        }
+
+        // AGREGASI DATA
+        foreach ($reports as $report) {
+            // Ambil nama hari (Mon, Tue, etc) dari tanggal laporan
+            $dayName = $report->date->format('D');
+
+            foreach ($report->details as $detail) {
+                $sess = $detail->session_type;
+
+                // Hitung Total Pax (Sum semua field cover)
+                $pax = 0;
+                if (!empty($detail->cover_data) && is_array($detail->cover_data)) {
+                    foreach ($detail->cover_data as $val) {
+                        if (is_numeric($val)) $pax += $val;
+                    }
+                }
+
+                // Masukkan ke Matrix
+                if (in_array($dayName, $daysOfWeek)) {
+                    $dayTrendMatrix[$sess][$dayName] += $pax;
+                }
+            }
+        }
+
+        // SIAPKAN DATA CHART (Line Chart)
+        $dayChartSeries = [];
+        foreach ($sessions as $sess) {
+            $dataPerDay = [];
+            foreach ($daysOfWeek as $day) {
+                $dataPerDay[] = $dayTrendMatrix[$sess][$day];
+            }
+            $dayChartSeries[] = [
+                'name' => ucfirst($sess),
+                'data' => $dataPerDay
+            ];
+        }
+
         // 8. Return Partial View
         // Kita kirim data yang sudah matang ke view khusus (belum kita buat)
         return view('analytics_modal', compact(
@@ -401,6 +448,9 @@ class DashboardController extends Controller
             'revChartSeries',
             'compChartCategories',
             'compChartSeries',
+            'daysOfWeek',
+            'dayTrendMatrix',
+            'dayChartSeries',
         ));
     }
 }
