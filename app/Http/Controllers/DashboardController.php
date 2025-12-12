@@ -211,6 +211,7 @@ class DashboardController extends Controller
 
             // D. Masukkan ke Array
             $breakdownPerformance[] = [
+                'id' => $resto->id,
                 'name' => $resto->name,
                 'code' => $resto->code,
                 'target' => $target,
@@ -241,6 +242,165 @@ class DashboardController extends Controller
             'monthlyTarget',
             'achievementPercent',
             'breakdownPerformance',
+        ));
+    }
+
+    public function getOutletAnalytics(Request $request, Restaurant $restaurant)
+    {
+        // 1. Validasi Akses (Security)
+        $user = Auth::user();
+        if (!$user->hasRole('Super Admin') && !$user->restaurants->contains($restaurant->id)) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        // 2. Ambil Filter Tanggal (Default: Bulan Ini)
+        $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
+        $endDate = $request->input('end_date', now()->endOfMonth()->format('Y-m-d'));
+
+        // 3. Query Data (Hanya Approved)
+        $reports = DailyReport::where('restaurant_id', $restaurant->id)
+            ->where('status', 'approved') // Wajib Approved
+            ->whereBetween('date', [$startDate, $endDate])
+            ->with('details')
+            ->get();
+
+        // 4. Inisialisasi Struktur Data Matriks
+        // Kita butuh array kosong untuk menampung penjumlahan
+        $sessions = ['breakfast', 'lunch', 'dinner', 'supper'];
+
+        // Structure: ['Item Name' => ['breakfast' => 0, 'lunch' => 0, ...]]
+        $revenueMatrix = [
+            'Food Revenue' => array_fill_keys($sessions, 0),
+            'Beverage Revenue' => array_fill_keys($sessions, 0),
+            'Others Revenue' => array_fill_keys($sessions, 0),
+            'Event Revenue' => array_fill_keys($sessions, 0),
+        ];
+
+        $coverMatrix = []; // Dinamis (tergantung key yang ditemukan)
+        $competitorMatrix = []; // Dinamis
+        $usCoverTotal = array_fill_keys($sessions, 0); // Untuk baris "Us" di tabel kompetitor
+
+        // 5. Loop & Agregasi Data (The Heavy Lifting)
+        foreach ($reports as $report) {
+            foreach ($report->details as $detail) {
+                $sess = $detail->session_type;
+
+                // A. Agregasi Revenue
+                $revenueMatrix['Food Revenue'][$sess] += $detail->revenue_food;
+                $revenueMatrix['Beverage Revenue'][$sess] += $detail->revenue_beverage;
+                $revenueMatrix['Others Revenue'][$sess] += $detail->revenue_others;
+                $revenueMatrix['Event Revenue'][$sess] += $detail->revenue_event;
+
+                // B. Agregasi Cover (Dinamis)
+                if (!empty($detail->cover_data) && is_array($detail->cover_data)) {
+                    foreach ($detail->cover_data as $key => $val) {
+                        if (is_numeric($val)) {
+                            // Bersihkan nama key (misal: "in_house_adult" -> "In House Adult")
+                            $cleanKey = ucwords(str_replace('_', ' ', $key));
+
+                            // Init jika belum ada di matriks
+                            if (!isset($coverMatrix[$cleanKey])) {
+                                $coverMatrix[$cleanKey] = array_fill_keys($sessions, 0);
+                            }
+
+                            $coverMatrix[$cleanKey][$sess] += $val;
+                            $usCoverTotal[$sess] += $val; // Tambah ke total kita
+                        }
+                    }
+                }
+
+                // C. Agregasi Competitor
+                if (!empty($detail->competitor_data) && is_array($detail->competitor_data)) {
+                    foreach ($detail->competitor_data as $key => $val) {
+                        if (is_numeric($val)) {
+                            $cleanKey = ucwords(str_replace(['_cover', 'cover', '_'], ['', '', ' '], $key)); // Hapus kata "cover" agar pendek
+
+                            if (!isset($competitorMatrix[$cleanKey])) {
+                                $competitorMatrix[$cleanKey] = array_fill_keys($sessions, 0);
+                            }
+
+                            $competitorMatrix[$cleanKey][$sess] += $val;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 6. Masukkan "Us (Our Resto)" ke baris pertama Competitor Matrix
+        // Kita merge array agar "Us" ada di paling atas
+        $competitorMatrix = array_merge(
+            ['Us (' . $restaurant->name . ')' => $usCoverTotal],
+            $competitorMatrix
+        );
+
+        // 7A. Siapkan Data untuk Grafik Cover Report
+        $chartCategories = array_keys($coverMatrix); // Label Sumbu X
+        $chartSeries = [];
+
+        foreach ($sessions as $sess) {
+            $dataPerSession = [];
+            foreach ($chartCategories as $category) {
+                // Ambil data dari matrix, default 0 jika error
+                $dataPerSession[] = $coverMatrix[$category][$sess] ?? 0;
+            }
+
+            $chartSeries[] = [
+                'name' => ucfirst($sess), // Breakfast, Lunch, etc
+                'data' => $dataPerSession
+            ];
+        }
+
+        // 7B. SIAPKAN DATA REVENUE CHART
+        // Categories: ['Food Revenue', 'Beverage Revenue', 'Others Revenue', 'Event Revenue']
+        $revChartCategories = array_keys($revenueMatrix);
+        $revChartSeries = [];
+
+        foreach ($sessions as $sess) {
+            $dataPerSession = [];
+            foreach ($revChartCategories as $category) {
+                // Ambil data dari matrix
+                $dataPerSession[] = $revenueMatrix[$category][$sess] ?? 0;
+            }
+
+            $revChartSeries[] = [
+                'name' => ucfirst($sess), // Breakfast, Lunch, etc
+                'data' => $dataPerSession
+            ];
+        }
+
+        // 7C. SIAPKAN DATA COMPETITOR CHART
+        // Categories: ['Us (Restaurant Name)', 'Shangri-La', 'JW Marriott', ...]
+        $compChartCategories = array_keys($competitorMatrix);
+        $compChartSeries = [];
+
+        foreach ($sessions as $sess) {
+            $dataPerSession = [];
+            foreach ($compChartCategories as $hotel) {
+                $dataPerSession[] = $competitorMatrix[$hotel][$sess] ?? 0;
+            }
+
+            $compChartSeries[] = [
+                'name' => ucfirst($sess),
+                'data' => $dataPerSession
+            ];
+        }
+
+        // 8. Return Partial View
+        // Kita kirim data yang sudah matang ke view khusus (belum kita buat)
+        return view('analytics_modal', compact(
+            'restaurant',
+            'startDate',
+            'endDate',
+            'sessions',
+            'revenueMatrix',
+            'coverMatrix',
+            'competitorMatrix',
+            'chartCategories',
+            'chartSeries',
+            'revChartCategories',
+            'revChartSeries',
+            'compChartCategories',
+            'compChartSeries',
         ));
     }
 }

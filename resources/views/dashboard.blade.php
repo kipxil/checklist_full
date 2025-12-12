@@ -88,7 +88,15 @@
                                             <li class="list-group-item px-0 py-3 border-bottom">
                                                 <div class="d-flex align-items-center justify-content-between mb-2">
                                                     <div>
-                                                        <h6 class="mb-0 fw-bold">{{ $data['name'] }}</h6>
+                                                        <h6 class="mb-0 fw-bold">
+                                                            {{-- Panggil fungsi JS openAnalyticsModal dengan ID Resto --}}
+                                                            <a href="javascript:void(0)"
+                                                                onclick="openAnalyticsModal({{ $data['id'] }})"
+                                                                class="text-decoration-none text-primary">
+                                                                {{ $data['name'] }} <i
+                                                                    class="ti ti-external-link ms-1 small"></i>
+                                                            </a>
+                                                        </h6>
                                                         <small class="text-muted">
                                                             <span class="text-dark fw-bold">Rp
                                                                 {{ number_format($data['actual'], 0, ',', '.') }}</span>
@@ -283,6 +291,21 @@
             </div>
         </div>
 
+        <div class="modal fade" id="analyticsModal" tabindex="-1" aria-labelledby="analyticsModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                {{-- Konten ini akan diganti oleh AJAX (Loading Spinner Default) --}}
+                <div class="modal-content" id="analyticsModalContent">
+                    <div class="modal-body text-center p-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3 text-muted">Loading analytics data...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -396,5 +419,328 @@
             var chartComp = new ApexCharts(document.querySelector("#competitor-chart"), compOptions);
             chartComp.render();
         });
+        // 1. Fungsi Buka Modal Pertama Kali
+        function openAnalyticsModal(restaurantId) {
+            // Tampilkan Modal Bootstrap
+            var myModal = new bootstrap.Modal(document.getElementById('analyticsModal'));
+            myModal.show();
+
+            // Panggil Data
+            loadAnalyticsData(restaurantId);
+        }
+
+        // 2. Fungsi Load Data (AJAX) - Dipakai saat buka modal ATAU saat filter tanggal
+        function loadAnalyticsData(restaurantId) {
+            // Ambil elemen konten modal
+            const contentDiv = document.getElementById('analyticsModalContent');
+
+            // Cek apakah user sedang filter tanggal (elemen input ada di dalam modal)
+            const startDateInput = document.getElementById('filter-start-date');
+            const endDateInput = document.getElementById('filter-end-date');
+
+            let url = `{{ url('/dashboard/analytics') }}/${restaurantId}`;
+
+            // Jika input tanggal ada (artinya ini reload filter), tambahkan parameter
+            if (startDateInput && endDateInput) {
+                url += `?start_date=${startDateInput.value}&end_date=${endDateInput.value}`;
+
+                // Tampilkan loading overlay tipis biar UX bagus
+                contentDiv.style.opacity = '0.5';
+                contentDiv.style.pointerEvents = 'none';
+            } else {
+                // Tampilkan Full Spinner (Reset tampilan awal)
+                contentDiv.innerHTML = `
+                <div class="modal-body text-center p-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-3 text-muted">Retrieving data...</p>
+                </div>
+            `;
+                contentDiv.style.opacity = '1';
+            }
+
+            // Fetch Data dari Server
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.text();
+                })
+                .then(html => {
+                    // Masukkan HTML Partial View ke dalam Modal
+                    contentDiv.innerHTML = html;
+                    contentDiv.style.opacity = '1';
+                    contentDiv.style.pointerEvents = 'auto';
+                })
+                .catch(error => {
+                    contentDiv.innerHTML = `
+                    <div class="modal-header"><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-body text-center text-danger p-5">
+                        <i class="ti ti-alert-triangle fs-1 mb-3"></i>
+                        <p>Failed to load data. Please try again.</p>
+                    </div>
+                `;
+                });
+        }
+        // Variabel Global untuk menyimpan object Chart
+        let coverChartInstance = null;
+        let revenueChartInstance = null;
+        let competitorChartInstance = null;
+
+        function openAnalyticsModal(restaurantId) {
+            var myModal = new bootstrap.Modal(document.getElementById('analyticsModal'));
+            myModal.show();
+            loadAnalyticsData(restaurantId);
+        }
+
+        function loadAnalyticsData(restaurantId) {
+            const contentDiv = document.getElementById('analyticsModalContent');
+
+            // ... (Kode Ambil Input Filter Tanggal - SAMA SEPERTI SEBELUMNYA) ...
+            const startDateInput = document.getElementById('filter-start-date');
+            const endDateInput = document.getElementById('filter-end-date');
+            let url = `{{ url('/dashboard/analytics') }}/${restaurantId}`;
+
+            if (startDateInput && endDateInput) {
+                url += `?start_date=${startDateInput.value}&end_date=${endDateInput.value}`;
+                contentDiv.style.opacity = '0.5';
+                contentDiv.style.pointerEvents = 'none';
+            } else {
+                // ... (Kode Loading Spinner - SAMA SEPERTI SEBELUMNYA) ...
+                contentDiv.innerHTML =
+                    `<div class="modal-body text-center p-5"><div class="spinner-border text-primary"></div></div>`;
+            }
+
+            fetch(url)
+                .then(response => response.text())
+                .then(html => {
+                    contentDiv.innerHTML = html;
+                    contentDiv.style.opacity = '1';
+                    contentDiv.style.pointerEvents = 'auto';
+
+                    // === TAMBAHAN BARU: RENDER CHART SETELAH HTML MUNCUL ===
+                    renderCoverChart();
+                    renderRevenueChart();
+                    renderCompetitorChart();
+                })
+                .catch(error => {
+                    console.error(error);
+                    contentDiv.innerHTML = `<p class="text-center text-danger p-5">Failed to load data.</p>`;
+                });
+        }
+
+        // --- FUNGSI BARU UNTUK RENDER CHART ---
+        function renderCoverChart() {
+            // 1. Ambil Data dari Textarea Tersembunyi
+            const catElement = document.getElementById('chart-categories-data');
+            const serElement = document.getElementById('chart-series-data');
+
+            if (!catElement || !serElement) return; // Stop jika elemen tidak ada
+
+            const categories = JSON.parse(catElement.value);
+            const series = JSON.parse(serElement.value);
+
+            // 2. Hapus Chart Lama (Jika ada) agar tidak error tumpang tindih
+            if (coverChartInstance) {
+                coverChartInstance.destroy();
+            }
+
+            // 3. Konfigurasi ApexCharts (Stacked Column)
+            var options = {
+                series: series,
+                chart: {
+                    type: 'bar',
+                    height: 350,
+                    stacked: true, // Mode Bertumpuk
+                    toolbar: {
+                        show: false
+                    },
+                    fontFamily: 'inherit' // Ikuti font website
+                },
+                plotOptions: {
+                    bar: {
+                        horizontal: false, // Ubah true jika label item terlalu panjang
+                        columnWidth: '50%',
+                        borderRadius: 4
+                    },
+                },
+                dataLabels: {
+                    enabled: false // Matikan angka di dalam bar agar bersih
+                },
+                stroke: {
+                    width: 1,
+                    colors: ['#fff']
+                },
+                xaxis: {
+                    categories: categories, // Item Cover (In House, Walk In, dll)
+                },
+                yaxis: {
+                    title: {
+                        text: 'Total Pax'
+                    }
+                },
+                fill: {
+                    opacity: 1
+                },
+                legend: {
+                    position: 'top',
+                    horizontalAlign: 'left'
+                },
+                colors: ['#ffc107', '#0d6efd', '#212529',
+                    '#6610f2'
+                ] // Warna: Kuning, Biru, Hitam, Ungu (Sesuai tema sesi)
+            };
+
+            // 4. Render Chart
+            coverChartInstance = new ApexCharts(document.querySelector("#coverReportChart"), options);
+            coverChartInstance.render();
+        }
+
+        function renderRevenueChart() {
+            // 1. Ambil Data
+            const catElement = document.getElementById('chart-rev-categories-data');
+            const serElement = document.getElementById('chart-rev-series-data');
+
+            if (!catElement || !serElement) return;
+
+            const categories = JSON.parse(catElement.value);
+            const series = JSON.parse(serElement.value);
+
+            // 2. Destroy Old Chart
+            if (revenueChartInstance) {
+                revenueChartInstance.destroy();
+            }
+
+            // 3. Config (Mirip Cover, tapi ada Yaxis formatter)
+            var options = {
+                series: series,
+                chart: {
+                    type: 'bar',
+                    height: 350,
+                    stacked: true,
+                    toolbar: {
+                        show: false
+                    },
+                    fontFamily: 'inherit'
+                },
+                plotOptions: {
+                    bar: {
+                        horizontal: false,
+                        columnWidth: '50%',
+                        borderRadius: 4
+                    },
+                },
+                dataLabels: {
+                    enabled: false
+                },
+                stroke: {
+                    width: 1,
+                    colors: ['#fff']
+                },
+                xaxis: {
+                    categories: categories,
+                },
+                yaxis: {
+                    title: {
+                        text: 'Revenue (IDR)'
+                    },
+                    labels: {
+                        // FORMATTER RUPIAH DI SUMBU Y
+                        formatter: function(value) {
+                            return value.toLocaleString('id-ID'); // Contoh: 1.000.000
+                        }
+                    }
+                },
+                tooltip: {
+                    y: {
+                        // FORMATTER RUPIAH DI TOOLTIP (Saat mouse hover)
+                        formatter: function(val) {
+                            return "Rp " + val.toLocaleString('id-ID');
+                        }
+                    }
+                },
+                fill: {
+                    opacity: 1
+                },
+                legend: {
+                    position: 'top',
+                    horizontalAlign: 'left'
+                },
+                colors: ['#ffc107', '#0d6efd', '#212529', '#6610f2'] // Kuning, Biru, Hitam, Ungu
+            };
+
+            // 4. Render
+            revenueChartInstance = new ApexCharts(document.querySelector("#revenueReportChart"), options);
+            revenueChartInstance.render();
+        }
+
+        function renderCompetitorChart() {
+            // 1. Ambil Data
+            const catElement = document.getElementById('chart-comp-categories-data');
+            const serElement = document.getElementById('chart-comp-series-data');
+
+            if (!catElement || !serElement) return;
+
+            const categories = JSON.parse(catElement.value);
+            const series = JSON.parse(serElement.value);
+
+            // 2. Destroy Old Chart
+            if (competitorChartInstance) {
+                competitorChartInstance.destroy();
+            }
+
+            // 3. Config
+            var options = {
+                series: series,
+                chart: {
+                    type: 'bar',
+                    height: 350,
+                    stacked: true,
+                    toolbar: {
+                        show: false
+                    },
+                    fontFamily: 'inherit'
+                },
+                plotOptions: {
+                    bar: {
+                        horizontal: false,
+                        columnWidth: '50%',
+                        borderRadius: 4
+                    },
+                },
+                dataLabels: {
+                    enabled: false
+                },
+                stroke: {
+                    width: 1,
+                    colors: ['#fff']
+                },
+                xaxis: {
+                    categories: categories, // Nama Hotel
+                },
+                yaxis: {
+                    title: {
+                        text: 'Total Pax'
+                    }
+                },
+                tooltip: {
+                    y: {
+                        formatter: function(val) {
+                            return val + " Pax";
+                        }
+                    }
+                },
+                fill: {
+                    opacity: 1
+                },
+                legend: {
+                    position: 'top',
+                    horizontalAlign: 'left'
+                },
+                colors: ['#ffc107', '#0d6efd', '#212529', '#6610f2'] // Tetap konsisten (Kuning, Biru, Hitam, Ungu)
+            };
+
+            // 4. Render
+            competitorChartInstance = new ApexCharts(document.querySelector("#competitorReportChart"), options);
+            competitorChartInstance.render();
+        }
     </script>
 @endsection

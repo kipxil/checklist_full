@@ -73,19 +73,6 @@
                         </li>
                     </ul>
 
-                    {{-- Tombol Approve (Hanya muncul jika status submitted) --}}
-                    {{-- @if ($dailyReport->status == 'submitted')
-                        <div class="d-grid mt-3">
-                            <form action="{{ route('daily-reports.approve', $dailyReport->id) }}" method="POST">
-                                @csrf
-                                @method('PATCH')
-                                <button type="submit" class="btn btn-success w-100"
-                                    onclick="return confirm('Apakah Anda yakin ingin menyetujui laporan ini? Data tidak bisa diubah lagi setelah ini.')">
-                                    <i class="ti ti-check"></i> Approve Report
-                                </button>
-                            </form>
-                        </div>
-                    @endif --}}
                     @if ($dailyReport->status == 'submitted')
                         @hasanyrole('Super Admin|Restaurant Manager')
                             <div class="d-grid mt-3">
@@ -122,6 +109,65 @@
 
         {{-- KOLOM KANAN: DETAIL SESI (Looping) --}}
         <div class="col-md-8">
+            @php
+                // 1. HITUNG TOTAL (Kalkulasi di View agar Controller tetap bersih)
+                $totalFood = 0;
+                $totalBev = 0;
+                $totalOthers = 0;
+                $totalEvent = 0;
+                $totalRevenue = 0;
+                $totalCover = 0;
+
+                foreach ($dailyReport->details as $d) {
+                    // Sum Revenue
+                    $totalFood += $d->revenue_food;
+                    $totalBev += $d->revenue_beverage;
+                    $totalOthers += $d->revenue_others;
+                    $totalEvent += $d->revenue_event;
+
+                    // Sum Cover (Karena struktur dinamis JSON)
+                    if (!empty($d->cover_data) && is_array($d->cover_data)) {
+                        foreach ($d->cover_data as $c) {
+                            if (is_numeric($c)) {
+                                $totalCover += $c;
+                            }
+                        }
+                    }
+                }
+                $totalRevenue = $totalFood + $totalBev + $totalOthers + $totalEvent;
+            @endphp
+
+            <div class="card mb-3 bg-primary text-white">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        {{-- Kiri: Grand Total Revenue --}}
+                        <div class="col-md-7 border-end border-white border-opacity-25">
+                            <h6 class="text-white text-opacity-75 text-uppercase small fw-bold mb-1">Total Daily Revenue
+                            </h6>
+                            <h2 class="mb-0 text-white fw-bold">Rp {{ number_format($totalRevenue, 0, ',', '.') }}</h2>
+
+                            {{-- Breakdown Kecil di bawah Total --}}
+                            <div class="d-flex flex-wrap gap-3 mt-3 text-white text-opacity-75 small">
+                                <div title="Food Revenue"><i class="ti ti-tools-kitchen-2 me-1"></i> F:
+                                    {{ number_format($totalFood) }}</div>
+                                <div title="Beverage Revenue"><i class="ti ti-glass-full me-1"></i> B:
+                                    {{ number_format($totalBev) }}</div>
+                                <div title="Event Revenue"><i class="ti ti-calendar-event me-1"></i> E:
+                                    {{ number_format($totalEvent) }}</div>
+                                <div title="Others Revenue"><i class="ti ti-dots-circle-horizontal me-1"></i> O:
+                                    {{ number_format($totalOthers) }}</div>
+                            </div>
+                        </div>
+
+                        {{-- Kanan: Total Cover --}}
+                        <div class="col-md-5 text-center ps-md-4 mt-3 mt-md-0">
+                            <h6 class="text-white text-opacity-75 text-uppercase small fw-bold mb-1">Total Pax/Cover</h6>
+                            <h2 class="mb-0 text-white fw-bold">{{ number_format($totalCover) }}</h2>
+                            <span class="badge bg-white text-primary mt-2">Accumulated</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
             @foreach ($dailyReport->details as $detail)
                 <div class="card mb-3">
                     <div
@@ -194,32 +240,6 @@
                             <p class="text-muted small">No cover data recorded.</p>
                         @endif
 
-                        {{-- 4. UPSELLING & COMPETITOR (Accordion agar tidak penuh) --}}
-                        {{-- <div class="accordion mt-3" id="accordion-{{ $detail->id }}">
-                            <div class="accordion-item">
-                                <h2 class="accordion-header" id="heading-{{ $detail->id }}">
-                                    <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse"
-                                        data-bs-target="#collapse-{{ $detail->id }}">
-                                        View Upselling & Competitor Data
-                                    </button>
-                                </h2>
-                                <div id="collapse-{{ $detail->id }}" class="accordion-collapse collapse"
-                                    data-bs-parent="#accordion-{{ $detail->id }}">
-                                    <div class="accordion-body">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <strong>Upselling Data:</strong>
-                                                <pre class="bg-light p-2 rounded mt-1" style="font-size: 11px;">{{ json_encode($detail->upselling_data, JSON_PRETTY_PRINT) }}</pre>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <strong>Competitor Data:</strong>
-                                                <pre class="bg-light p-2 rounded mt-1" style="font-size: 11px;">{{ json_encode($detail->competitor_data, JSON_PRETTY_PRINT) }}</pre>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div> --}}
                         <hr class="my-4">
 
                         {{-- A. UPSELLING SECTION --}}
@@ -232,7 +252,8 @@
                             <div class="col-md-6">
                                 <div class="card bg-light-primary border-0">
                                     <div class="card-body p-3">
-                                        <h6 class="card-title text-primary mb-2"><i class="ti ti-tools-kitchen-2"></i> Food
+                                        <h6 class="card-title text-primary mb-2"><i class="ti ti-tools-kitchen-2"></i>
+                                            Food
                                             Items</h6>
                                         {{-- LOGIKA FIX: Decode dulu jika datanya String --}}
                                         @php
@@ -397,7 +418,37 @@
                                             {{-- Competitor --}}
                                             <div class="col-md-6 border-end">
                                                 <small class="text-muted d-block mb-2">Competitor Cover Comparison</small>
-                                                <div class="d-flex gap-3 text-center">
+
+                                                <div class="d-flex gap-3 text-center align-items-center">
+
+                                                    {{-- A. LOGIKA: Hitung Total Cover Kita --}}
+                                                    @php
+                                                        $myTotalCover = 0;
+                                                        if (
+                                                            !empty($detail->cover_data) &&
+                                                            is_array($detail->cover_data)
+                                                        ) {
+                                                            foreach ($detail->cover_data as $val) {
+                                                                if (is_numeric($val)) {
+                                                                    $myTotalCover += $val;
+                                                                }
+                                                            }
+                                                        }
+                                                    @endphp
+
+                                                    {{-- B. TAMPILAN: Restoran Kita (Warna Biru/Primary) --}}
+                                                    <div>
+                                                        <h4 class="mb-0 fw-bold text-primary">{{ $myTotalCover }}</h4>
+                                                        <span class="text-primary fw-bold"
+                                                            style="font-size: 10px; text-transform: uppercase;">
+                                                            {{ $dailyReport->restaurant->name }}
+                                                        </span>
+                                                    </div>
+
+                                                    {{-- Garis Pemisah Vertikal --}}
+                                                    <div class="border-end h-100" style="min-height: 30px;"></div>
+
+                                                    {{-- C. TAMPILAN: Kompetitor (Looping) --}}
                                                     @if (!empty($detail->competitor_data))
                                                         @foreach ($detail->competitor_data as $key => $val)
                                                             <div>
@@ -409,7 +460,7 @@
                                                             </div>
                                                         @endforeach
                                                     @else
-                                                        <span class="small text-muted">- No data -</span>
+                                                        <span class="small text-muted fst-italic">- No data -</span>
                                                     @endif
                                                 </div>
                                             </div>
